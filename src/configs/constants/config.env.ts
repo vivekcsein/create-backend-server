@@ -19,6 +19,7 @@ const _envMysqlDB = {
     DB_USERNAME: process.env.DB_USERNAME as string,
     DB_PASSWORD: process.env.DB_PASSWORD as string,
     DB_NAME: process.env.DB_NAME as string,
+    DB_SYNC: Boolean(process.env.DB_SYNC),
     DB_PORT: parseInt(process.env.SERVER_PORT as string, 10) | (3306 as number),
 };
 

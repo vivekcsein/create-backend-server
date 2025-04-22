@@ -60,3 +60,12 @@ initialize the node project and create package.json using this command on termin
     },
 
 </p>
+
+<p>Adding mysql & redis database packages to create and connect database
+</p>
+
+<p>
+    
+    bun add sequelize mysql2 pg-hstore @upstash/redis
+
+</p>
