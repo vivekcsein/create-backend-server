@@ -1,0 +1,27 @@
+{
+  "name": "create-backend-server",
+  "version": "1.0.1",
+  "description": "A production ready backend server created on fastify and mysql",
+  "module": "src/app.ts",
+  "private": true,
+  "scripts": {
+    "build": "rimraf dist && bun build --entrypoints ./src/app.ts --outdir ./dist --format esm --splitting --minify --target node",
+    "prestart": "bun run build",
+    "start": "bun ./dist/app.js",
+    "dev": "bun run --watch ./src/app.ts",
+    "prettier": "prettier --write ."
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "keywords": [
+    "fastify",
+    "mysql",
+    "redis",
+    "sequelize",
+    "fastify-plugin"
+  ]
+}
