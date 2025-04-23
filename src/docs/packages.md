@@ -1,11 +1,11 @@
 # Create the project from scratch
 
 <p>
-create a folder ( name = create_backend_server)
+Create a folder ( name = create_backend_server)
 </p>
 
 <p>
-initialize the node project and create package.json using this command on terminal and choose blank template.
+Initialize the node project, create package.json using this terminal command, and choose a blank template.
 </p>     
 <p>
 
@@ -16,7 +16,7 @@ initialize the node project and create package.json using this command on termin
        bunx init -y
 </p>
 <h2>
-1. create "src" folder & create a file name "app.ts" &  "server.ts"
+1. Create a "src" folder & create a file named "app.ts" &  "server.ts"
 </h2>
 <p>
 
@@ -61,7 +61,7 @@ initialize the node project and create package.json using this command on termin
 
 </p>
 
-<p>Adding mysql & redis database packages to create and connect database
+<p>Adding MySQL & redis database packages to create and connect database
 </p>
 
 <p>
