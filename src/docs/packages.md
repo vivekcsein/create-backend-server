@@ -69,3 +69,16 @@ initialize the node project and create package.json using this command on termin
     bun add sequelize mysql2 pg-hstore @upstash/redis
 
 </p>
+
+<p>Adding email setup and otp authentication </p>
+
+<p>
+    
+    bun add nodemailer ejs jsonwebtoken
+
+</p>
+<p>
+    
+    bun add --dev @types/nodemailer @types/ejs @types/jsonwebtoken
+
+</p>
