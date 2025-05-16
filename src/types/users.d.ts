@@ -31,11 +31,13 @@ export interface OtpVerifyOptions {
     otp: string;
     password: string;
     name: string;
+    role?: IUserProfileType;
 }
 
 export interface ILoginOptions {
     email: string;
     password: string;
+    rememberme?: boolean;
 }
 export interface IUserEmailOptions {
     email: string;

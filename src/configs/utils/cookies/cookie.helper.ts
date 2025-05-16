@@ -5,6 +5,7 @@ export const setCookie = (reply: FastifyReply, name: string, value: string) => {
     httpOnly: true,
     secure: true,
     sameSite: "none",
-    maxAge: 7 * 24 * 60 * 1000,
+    // 30 days maximum time to expire cookie
+    maxAge: 30 * 24 * 60 * 60 * 1000,
   });
 };

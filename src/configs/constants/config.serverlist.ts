@@ -14,4 +14,5 @@ export const allowedOrigins = [
   `http://localhost:${envConfig.SERVER_PORT}`,
   `http://upstash.io`,
   "https://yourdomain.com",
+  "http://localhost:3000"
 ];

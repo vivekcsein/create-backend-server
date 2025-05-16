@@ -4,7 +4,6 @@ import {
   OtpGenerator,
 } from "../../../configs/constants/config.helper";
 import {
-  AuthError,
   OtpError,
   ValidationError,
 } from "../../../configs/utils/errors/errors.handler";

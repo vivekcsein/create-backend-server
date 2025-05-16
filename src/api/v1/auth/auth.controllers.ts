@@ -70,7 +70,7 @@ export const userVerifyandCreateUser = async (
             throw new ValidationError(`Email already exists: ${email}`);
         }
 
-        await VerifyOtp(email, otp);
+        // await VerifyOtp(email, otp);
 
         const hasedPassword = await bcrypt.hash(password, 10);
         const newUser = await UserModel.create({
@@ -85,75 +85,6 @@ export const userVerifyandCreateUser = async (
             .header("Content-Type", "application/json; charset=utf-8")
             .send({
                 message: `New user is created with id:${newUser.dataValues.id}`,
-            });
-    } catch (error) {
-        return error;
-    }
-};
-
-export const userSignIn = async (req: FastifyRequest, reply: FastifyReply) => {
-    try {
-        const { email, password } = req.body as ILoginOptions;
-
-        if (!email || !password) {
-            throw new ValidationError("Email & password are required");
-        }
-
-        const User = await UserModel.findOne({ where: { email: email } });
-        if (!User) {
-            throw new AuthError(`User doesn't exists`);
-        }
-        const UserInfo = {
-            id: User?.dataValues?.id,
-            password: User?.dataValues?.password,
-            email: User?.dataValues?.email,
-            name: User?.dataValues?.name,
-        };
-
-        //verify password
-        const isMatch = await bcrypt.compare(
-            password,
-            UserInfo.password ? UserInfo.password : ""
-        );
-        if (!isMatch) {
-            throw new AuthError("Incorrect Password");
-        }
-
-        const accesToken = JWT.sign(
-            {
-                id: UserInfo.id,
-                role: "DEFAULT",
-            },
-            envJWTServices.JWT_ACCESS_TOKEN,
-            {
-                expiresIn: "15m",
-            }
-        );
-
-        const refreshToken = JWT.sign(
-            {
-                id: UserInfo.id,
-                role: "DEFAULT",
-            },
-            envJWTServices.JWT_REFRESH_TOKEN,
-            {
-                expiresIn: "7d",
-            }
-        );
-
-        setCookie(reply, "access_token", accesToken);
-        setCookie(reply, "refresh_token", refreshToken);
-
-        reply
-            .status(201)
-            .header("Content-Type", "application/json; charset=utf-8")
-            .send({
-                message: "user login succesfully",
-                user: {
-                    id: UserInfo.id,
-                    email: UserInfo.email,
-                    name: UserInfo.name,
-                },
             });
     } catch (error) {
         return error;
@@ -255,5 +186,142 @@ export const resetForgetPassword = async (
             });
     } catch (error) {
         return error;
+    }
+};
+
+
+export const userSignIn = async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+        const { email, password, rememberme } = req.body as ILoginOptions;
+
+        if (!email || !password) {
+            throw new ValidationError("Email & password are required");
+        }
+
+        const User = await UserModel.findOne({ where: { email: email } });
+        if (!User) {
+            throw new AuthError(`User doesn't exists`);
+        }
+        const UserInfo = {
+            id: User?.dataValues?.id,
+            password: User?.dataValues?.password,
+            email: User?.dataValues?.email,
+            name: User?.dataValues?.name,
+            role: User?.dataValues?.role,
+        };
+
+        //verify password
+        const isMatch = await bcrypt.compare(
+            password,
+            UserInfo.password ? UserInfo.password : ""
+        );
+        if (!isMatch) {
+            throw new AuthError("Incorrect Password");
+        }
+
+        const accessToken = JWT.sign(
+            {
+                id: UserInfo.id,
+                role: "DEFAULT",
+            },
+            envJWTServices.JWT_ACCESS_TOKEN,
+            {
+                expiresIn: `${rememberme ? "7d" : "1d"}`,
+            }
+        );
+
+        const refreshToken = JWT.sign(
+            {
+                id: UserInfo.id,
+                role: "DEFAULT",
+            },
+            envJWTServices.JWT_REFRESH_TOKEN,
+            {
+                expiresIn: `${rememberme ? "30d" : "7d"}`,
+            }
+        );
+
+        // Only set refresh token cookie if HTTPS is used
+        const isSecure = req.protocol === "https" || req.headers["x-forwarded-proto"] === "https";
+
+        setCookie(reply, "access_token", accessToken);
+
+        if (isSecure) {
+            setCookie(reply, "refresh_token", refreshToken);
+        }
+
+        reply
+            .status(201)
+            .header("Content-Type", "application/json; charset=utf-8")
+            .send({
+                message: "user login succesfully",
+                user: {
+                    id: UserInfo.id,
+                    email: UserInfo.email,
+                    name: UserInfo.name,
+                    role: UserInfo.role,
+                },
+            });
+    } catch (error) {
+        return error;
+    }
+};
+
+
+// Middleware to verify access token from HttpOnly cookie
+export const verifyAccessToken = async (req: FastifyRequest, reply: FastifyReply) => {
+    const token = req.cookies.access_token;
+    if (!token) {
+        throw new AuthError("Authentication required");
+    }
+    try {
+        const decoded = JWT.verify(token, envJWTServices.JWT_ACCESS_TOKEN);
+        (req as any).user = decoded;
+
+        // Token is valid, send the decoded payload
+        reply.status(200)
+            .header("Content-Type", "application/json; charset=utf-8")
+            .send({
+                message: 'Token verified successfully', data: decoded
+            });
+    } catch (err) {
+        throw new AuthError("Invalid or expired access token");
+    }
+};
+
+
+export const verifyRefreshToken = async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+        const refreshToken = req.cookies.REFRESH_TOKEN;
+
+        if (!refreshToken) {
+            throw new ValidationError("'Refresh token is required'", [])
+        }
+
+        // Verify the refresh token
+        JWT.verify(refreshToken, envJWTServices.JWT_REFRESH_TOKEN, (err: any, decoded: any) => {
+            if (err) {
+                return reply.status(401)
+                    .header("Content-Type", "application/json; charset=utf-8")
+                    .send({
+                        message: 'Invalid or expired refresh token',
+                    });
+            }
+
+            // Token is valid, send the decoded payload
+            return reply.status(200)
+                .header("Content-Type", "application/json; charset=utf-8")
+                .send({
+                    message: 'Token verified successfully', data: decoded
+                });
+
+        });
+    } catch (error) {
+        console.error('Error verifying refresh token:', error);
+        return reply.status(500)
+            .header("Content-Type", "application/json; charset=utf-8")
+            .send({
+                message: 'Internal server error'
+            });
     }
 };

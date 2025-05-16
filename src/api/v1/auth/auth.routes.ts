@@ -26,6 +26,22 @@ const signInRoute: RouteOptions = {
     // schema: signInSchema,
 };
 
+const verifyAccessTokenRoute: RouteOptions = {
+    method: "POST",
+    url: "/verify-user-access-token",
+    handler: usersController.verifyAccessToken,
+    errorHandler: errHandler.errVerifyAccessTokenRoute,
+    // schema: verifyRefreshTokenSchema,
+};
+
+const verifyRefreshTokenRoute: RouteOptions = {
+    method: "POST",
+    url: "/verify-user-refresh-token",
+    handler: usersController.verifyRefreshToken,
+    errorHandler: errHandler.errVerifyRefreshTokenRoute,
+    // schema: verifyRefreshTokenSchema,
+};
+
 const forgetPasswordRoute: RouteOptions = {
     method: "PUT",
     url: "/forget-password",
@@ -54,6 +70,8 @@ const authRoutes = [
     signUpRoute,
     verifyAndCreateRoute,
     signInRoute,
+    verifyAccessTokenRoute,
+    verifyRefreshTokenRoute,
     forgetPasswordRoute,
     verifyForgetPasswordOtpRoute,
     resetPasswordRoute
