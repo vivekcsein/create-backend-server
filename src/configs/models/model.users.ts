@@ -38,9 +38,10 @@ const UserModel: ModelDefined<Iuser, UserCreationAttributes> = sequelize.define(
       autoIncrement: true,
     },
     uniqueId: {
-      type: DataTypes.UUIDV4,
-      primaryKey: true,
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
       unique: true,
+      allowNull: false,
     },
     email: {
       type: DataTypes.STRING(64),

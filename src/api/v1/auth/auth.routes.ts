@@ -60,7 +60,7 @@ const verifyForgetPasswordOtpRoute: RouteOptions = {
 
 const resetPasswordRoute: RouteOptions = {
     method: "PUT",
-    url: "/reset-password",
+    url: "/update-password",
     handler: usersController.resetForgetPassword,
     errorHandler: errHandler.errResetForgetPassword,
     // schema: resetPasswordSchema,
