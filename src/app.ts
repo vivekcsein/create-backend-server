@@ -22,8 +22,8 @@ app.get("/", async function handler(_req, _reply) {
 });
 
 //register all plugins
-await app.register(corsPlugin);
 await app.register(cookiePlugin);
+await app.register(corsPlugin);
 await app.register(dbPlugin);
 await app.register(apiRoutesV1_Plugin);
 

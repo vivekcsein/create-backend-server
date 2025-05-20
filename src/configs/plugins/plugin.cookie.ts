@@ -8,7 +8,9 @@ const cookiePlugin = fp(
   async (fastify: FastifyInstance) => {
     fastify.register(cookie, {
       secret: envJWTServices.JWT_SECRET_TOKEN, // for cookies signature
-      parseOptions: {}, // options for parsing cookies
+      parseOptions: {
+        sameSite: "strict"
+      }, // options for parsing cookies
     } as FastifyCookieOptions);
   },
   {

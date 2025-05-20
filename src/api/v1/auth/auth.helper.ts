@@ -18,9 +18,9 @@ export const validateRegistration = (
   data: Iuser,
   userProfileType: IUserProfileType
 ) => {
-  const { name, email, password, phone_number } = data;
+  const { fullname, email, password, phone_number } = data;
   if (
-    !name ||
+    !fullname ||
     !email ||
     !password ||
     (userProfileType === "SELLER" && !phone_number)

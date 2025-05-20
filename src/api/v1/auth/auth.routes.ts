@@ -42,6 +42,14 @@ const verifyRefreshTokenRoute: RouteOptions = {
     // schema: verifyRefreshTokenSchema,
 };
 
+const fetchUser: RouteOptions = {
+    method: "GET",
+    url: "/fetch-user",
+    handler: usersController.verifyTokensAndFetchUser,
+    errorHandler: errHandler.errVerifyRefreshTokenRoute,
+    // schema: verifyRefreshTokenSchema,
+};
+
 const forgetPasswordRoute: RouteOptions = {
     method: "PUT",
     url: "/forget-password",
@@ -66,12 +74,23 @@ const resetPasswordRoute: RouteOptions = {
     // schema: resetPasswordSchema,
 };
 
+const signOutRoute: RouteOptions = {
+    method: "POST",
+    url: "/signout",
+    handler: usersController.userSignOut,
+    errorHandler: errHandler.errUserSignIn,
+    // schema: signInSchema,
+};
+
+
 const authRoutes = [
     signUpRoute,
     verifyAndCreateRoute,
     signInRoute,
+    signOutRoute,
     verifyAccessTokenRoute,
     verifyRefreshTokenRoute,
+    fetchUser,
     forgetPasswordRoute,
     verifyForgetPasswordOtpRoute,
     resetPasswordRoute

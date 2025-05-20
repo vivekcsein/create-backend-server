@@ -45,8 +45,13 @@ const _envJWTServices = {
   JWT_REFRESH_TOKEN: process.env.JWT_REFRESH_TOKEN as string,
 };
 
+const _envCookieValue = {
+  COOKIE_SECURE: process.env.NODE_ENV === "production" ? true : false,
+}
+
 export const envConfig = Object.freeze(_envConfig);
 export const envMysqlDB = Object.freeze(_envMysqlDB);
 export const envRedisDB = Object.freeze(_envRedisDB);
 export const envMailServices = Object.freeze(_envMailServices);
 export const envJWTServices = Object.freeze(_envJWTServices);
+export const envCookieValue = Object.freeze(_envCookieValue);

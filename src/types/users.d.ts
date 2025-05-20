@@ -1,3 +1,5 @@
+import type { UUID } from "node:crypto";
+
 export type defaultProfileType = "DEFAULT";
 export type sellerProfileType = "SELLER";
 export type adminProfileType = "ADMIN";
@@ -9,7 +11,8 @@ export type IUserProfileType =
 
 export interface Iuser {
     id: number;
-    name: string;
+    uniqueId: UUID;
+    fullname: string;
     email: string;
     role: IUserProfileType;
     password?: string;
@@ -27,11 +30,11 @@ export interface OtpErrorMessages {
 }
 
 export interface OtpVerifyOptions {
+    fullname: string;
     email: string;
-    otp: string;
     password: string;
-    name: string;
     role?: IUserProfileType;
+    otp: string;
 }
 
 export interface ILoginOptions {

@@ -25,6 +25,8 @@ import type {
     IUserVerifyOtp,
     OtpVerifyOptions,
 } from "../../../types/users";
+import type { UUID } from "node:crypto";
+import { userInfo } from "node:os";
 
 export const userSignUp = async (req: FastifyRequest, reply: FastifyReply) => {
     try {
@@ -40,7 +42,7 @@ export const userSignUp = async (req: FastifyRequest, reply: FastifyReply) => {
         const checkOtpStatus = await checkOtpRestrictions(data.email);
         if (checkOtpStatus === true) {
             await trackOtpRequests(data.email);
-            await sendOtp(data.name, data.email, "email-otp-activation");
+            await sendOtp(data.fullname, data.email, "email-otp-activation");
             reply
                 .status(200)
                 .header("Content-Type", "application/json; charset=utf-8")
@@ -58,10 +60,10 @@ export const userVerifyandCreateUser = async (
     reply: FastifyReply
 ) => {
     try {
-        const { email, otp, password, name } = req.body as OtpVerifyOptions;
+        const { email, otp, password, fullname } = req.body as OtpVerifyOptions;
         const defaultUserProfile: IUserProfileType = "DEFAULT";
 
-        if (!email || !otp || !password || !name) {
+        if (!email || !password || !fullname || !otp) {
             throw new ValidationError("All fields are required");
         }
 
@@ -74,9 +76,10 @@ export const userVerifyandCreateUser = async (
 
         const hasedPassword = await bcrypt.hash(password, 10);
         const newUser = await UserModel.create({
-            name: name,
+            uniqueId: crypto.randomUUID(),
             email: email,
             password: hasedPassword,
+            fullname: fullname,
             role: defaultUserProfile,
         });
 
@@ -106,10 +109,10 @@ export const userForgetPassword = async (
             throw new ValidationError(`User doesn't exists: ${email}`);
         }
         const checkOtpStatus = await checkOtpRestrictions(email);
-        const name = User?.dataValues.name;
+        const fullname = User?.dataValues.fullname;
         if (checkOtpStatus === true) {
             await trackOtpRequests(email);
-            await sendOtp(name, email, "email-otp-forget-password");
+            await sendOtp(fullname, email, "email-otp-forget-password");
             reply
                 .status(200)
                 .header("Content-Type", "application/json; charset=utf-8")
@@ -202,19 +205,22 @@ export const userSignIn = async (req: FastifyRequest, reply: FastifyReply) => {
         if (!User) {
             throw new AuthError(`User doesn't exists`);
         }
+        // const userUniqueId = User?.dataValues?.uniqueId;
+        const savedUserPassword = User?.dataValues?.password;
         const UserInfo = {
             id: User?.dataValues?.id,
-            password: User?.dataValues?.password,
             email: User?.dataValues?.email,
-            name: User?.dataValues?.name,
+            fullname: User?.dataValues?.fullname,
             role: User?.dataValues?.role,
         };
 
+        if (!savedUserPassword) {
+            throw new AuthError("Try login with other methods");
+        }
+
         //verify password
-        const isMatch = await bcrypt.compare(
-            password,
-            UserInfo.password ? UserInfo.password : ""
-        );
+        const isMatch = await bcrypt.compare(password, savedUserPassword);
+
         if (!isMatch) {
             throw new AuthError("Incorrect Password");
         }
@@ -222,18 +228,16 @@ export const userSignIn = async (req: FastifyRequest, reply: FastifyReply) => {
         const accessToken = JWT.sign(
             {
                 id: UserInfo.id,
-                role: "DEFAULT",
             },
             envJWTServices.JWT_ACCESS_TOKEN,
             {
-                expiresIn: `${rememberme ? "7d" : "1d"}`,
+                expiresIn: `${rememberme ? "60m" : "15m"}`,
             }
         );
 
         const refreshToken = JWT.sign(
             {
                 id: UserInfo.id,
-                role: "DEFAULT",
             },
             envJWTServices.JWT_REFRESH_TOKEN,
             {
@@ -242,25 +246,20 @@ export const userSignIn = async (req: FastifyRequest, reply: FastifyReply) => {
         );
 
         // Only set refresh token cookie if HTTPS is used
-        const isSecure = req.protocol === "https" || req.headers["x-forwarded-proto"] === "https";
+        // const isSecure = req.protocol === "https" || req.headers["x-forwarded-proto"] === "https";
 
         setCookie(reply, "access_token", accessToken);
+        setCookie(reply, "refresh_token", refreshToken);
 
-        if (isSecure) {
-            setCookie(reply, "refresh_token", refreshToken);
-        }
+        // if (isSecure) {
+        // }
 
         reply
             .status(201)
             .header("Content-Type", "application/json; charset=utf-8")
             .send({
                 message: "user login succesfully",
-                user: {
-                    id: UserInfo.id,
-                    email: UserInfo.email,
-                    name: UserInfo.name,
-                    role: UserInfo.role,
-                },
+                user: UserInfo
             });
     } catch (error) {
         return error;
@@ -292,7 +291,7 @@ export const verifyAccessToken = async (req: FastifyRequest, reply: FastifyReply
 
 export const verifyRefreshToken = async (req: FastifyRequest, reply: FastifyReply) => {
     try {
-        const refreshToken = req.cookies.REFRESH_TOKEN;
+        const refreshToken = req.cookies.refresh_token;
 
         if (!refreshToken) {
             throw new ValidationError("'Refresh token is required'", [])
@@ -317,11 +316,89 @@ export const verifyRefreshToken = async (req: FastifyRequest, reply: FastifyRepl
 
         });
     } catch (error) {
-        console.error('Error verifying refresh token:', error);
-        return reply.status(500)
+        // console.error('Error verifying refresh token:', error);
+        reply.status(500)
             .header("Content-Type", "application/json; charset=utf-8")
             .send({
                 message: 'Internal server error'
             });
     }
 };
+
+// Helper to fetch user info by id
+const fetchUser = async (userId: number) => {
+    const User = await UserModel.findByPk(userId, {
+        attributes: ["id", "email", "fullname", "role"]
+    });
+
+    if (!User) return null;
+
+    const UserInfo = {
+        id: User?.dataValues?.id,
+        email: User?.dataValues?.email,
+        fullname: User?.dataValues?.fullname,
+        role: User?.dataValues?.role,
+    };
+    return UserInfo;
+}
+
+// Verify access and refresh tokens, then fetch user info
+export const verifyTokensAndFetchUser = async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+        const accessToken = req.cookies.access_token;
+        const refreshToken = req.cookies.refresh_token;
+
+        if (!accessToken) {
+            return reply.status(401)
+                .header("Content-Type", "application/json; charset=utf-8")
+                .send({ message: "Access tokens is required" });
+        }
+
+        if (!refreshToken) {
+            return reply.status(401)
+                .header("Content-Type", "application/json; charset=utf-8")
+                .send({ message: "Refresh tokens are required" });
+        }
+
+        let decodedAccess;
+        let decodedRefresh;
+        try {
+            decodedAccess = JWT.verify(accessToken, envJWTServices.JWT_ACCESS_TOKEN);
+        } catch {
+            return reply.status(401)
+                .header("Content-Type", "application/json; charset=utf-8")
+                .send({ message: "Invalid or expired access token" });
+        }
+
+        try {
+            decodedRefresh = JWT.verify(refreshToken, envJWTServices.JWT_REFRESH_TOKEN);
+        } catch {
+            return reply.status(401)
+                .header("Content-Type", "application/json; charset=utf-8")
+                .send({ message: "Invalid or expired refresh token" });
+        }
+
+        // Both tokens are valid, fetch user info
+        const fetchedUser = await fetchUser((decodedAccess as any).id as number);
+        if (!fetchedUser) {
+            return reply.status(404)
+                .header("Content-Type", "application/json; charset=utf-8")
+                .send({ message: "User not found" });
+        }
+
+        return reply.status(200)
+            .header("Content-Type", "application/json; charset=utf-8")
+            .send({ success: true, user: fetchedUser });
+    } catch (error) {
+        return reply.status(500)
+            .header("Content-Type", "application/json; charset=utf-8")
+            .send({ message: "Internal server error" });
+    }
+};
+
+export const userSignOut = async (_req: FastifyRequest, reply: FastifyReply) => {
+    reply
+        .clearCookie("access_token", { path: "/" })
+        .clearCookie("refresh_token", { path: "/" })
+        .send({ message: "Logged out" });
+}

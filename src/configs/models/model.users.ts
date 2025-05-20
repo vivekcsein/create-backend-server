@@ -19,7 +19,7 @@ type UserCreationAttributes = Optional<Iuser, "id">;
 
 class User extends Model<Iuser, UserCreationAttributes> {
   declare id: CreationOptional<number>;
-  declare uniqueId: UUID;
+  declare uniqueId: CreationOptional<UUID>;
   declare email: string;
   declare username: CreationOptional<string>;
   declare fullname: CreationOptional<string>;
