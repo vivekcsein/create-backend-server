@@ -11,7 +11,7 @@ export type IUserProfileType =
 
 export interface Iuser {
     id: number;
-    uniqueId: UUID;
+    uid: UUID;
     fullname: string;
     email: string;
     role: IUserProfileType;

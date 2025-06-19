@@ -25,8 +25,6 @@ import type {
     IUserVerifyOtp,
     OtpVerifyOptions,
 } from "../../../types/users";
-import type { UUID } from "node:crypto";
-import { userInfo } from "node:os";
 
 export const userSignUp = async (req: FastifyRequest, reply: FastifyReply) => {
     try {
@@ -76,7 +74,7 @@ export const userVerifyandCreateUser = async (
 
         const hasedPassword = await bcrypt.hash(password, 10);
         const newUser = await UserModel.create({
-            uniqueId: crypto.randomUUID(),
+            uid: crypto.randomUUID(),
             email: email,
             password: hasedPassword,
             fullname: fullname,
@@ -205,7 +203,6 @@ export const userSignIn = async (req: FastifyRequest, reply: FastifyReply) => {
         if (!User) {
             throw new AuthError(`User doesn't exists`);
         }
-        // const userUniqueId = User?.dataValues?.uniqueId;
         const savedUserPassword = User?.dataValues?.password;
         const UserInfo = {
             id: User?.dataValues?.id,

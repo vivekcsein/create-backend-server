@@ -10,7 +10,7 @@ import UserModel from "../models/model.users";
 // Make Sequelize instance accessible to all routes and handlers
 const dbPlugin = async (fastify: FastifyInstance) => {
   connect_sequelizeDB();
-  connect_redisDB();
+  // connect_redisDB();
   fastify.decorate("sequelize", sequelize);
   // Make model accessible
   fastify.decorate("User", UserModel);

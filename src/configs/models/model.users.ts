@@ -19,7 +19,7 @@ type UserCreationAttributes = Optional<Iuser, "id">;
 
 class User extends Model<Iuser, UserCreationAttributes> {
   declare id: CreationOptional<number>;
-  declare uniqueId: CreationOptional<UUID>;
+  declare uid: CreationOptional<UUID>;
   declare email: string;
   declare username: CreationOptional<string>;
   declare fullname: CreationOptional<string>;
@@ -37,7 +37,7 @@ const UserModel: ModelDefined<Iuser, UserCreationAttributes> = sequelize.define(
       primaryKey: true,
       autoIncrement: true,
     },
-    uniqueId: {
+    uid: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       unique: true,
