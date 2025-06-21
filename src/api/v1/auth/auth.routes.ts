@@ -81,7 +81,29 @@ const signOutRoute: RouteOptions = {
     errorHandler: errHandler.errUserSignIn,
     // schema: signInSchema,
 };
+const redirectToGoogleSignin: RouteOptions = {
+    method: "GET",
+    url: "/google",
+    handler: usersController.UserRedirectToGoogleSignin,
+    errorHandler: errHandler.errUserSignIn,
+    // schema: signInWithGoogleSchema,
+};
 
+const callbackFromGoogle: RouteOptions = {
+    method: "GET",
+    url: "/google/callback",
+    handler: usersController.UserCallbackFromGoogle,
+    errorHandler: errHandler.errUserSignIn,
+    // schema: signInWithGoogleSchema,
+};
+
+const signOutFromGoogle: RouteOptions = {
+    method: "POST",
+    url: "/signoutgoogle",
+    handler: usersController.userSignOut,
+    errorHandler: errHandler.errUserSignIn,
+    // schema: signOutFromGoogleSchema,
+};
 
 const authRoutes = [
     signUpRoute,
@@ -93,7 +115,10 @@ const authRoutes = [
     fetchUser,
     forgetPasswordRoute,
     verifyForgetPasswordOtpRoute,
-    resetPasswordRoute
+    resetPasswordRoute,
+    redirectToGoogleSignin,
+    callbackFromGoogle,
+    signOutFromGoogle,
 ];
 
 export default authRoutes;

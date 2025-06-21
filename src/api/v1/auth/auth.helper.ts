@@ -1,4 +1,7 @@
 import redis from "../../../configs/database/db.redis";
+import LocalUserModel from "../../../configs/models/model.LocalUsers";
+import type { Iuser, IUserProfileType } from "../../../types/users";
+
 import {
   errOtpMessages,
   OtpGenerator,
@@ -7,12 +10,10 @@ import {
   OtpError,
   ValidationError,
 } from "../../../configs/utils/errors/errors.handler";
-import type { Iuser, IUserProfileType } from "../../../types/users";
 import {
   sendEmail,
   type sendEmail_params,
 } from "../../../configs/utils/emails/emails.helper";
-import UserModel from "../../../configs/models/model.users";
 
 export const validateRegistration = (
   data: Iuser,
@@ -31,7 +32,7 @@ export const validateRegistration = (
 
 export const userExistsInDB = async (email: string): Promise<boolean> => {
   // Check if user already exists in the database
-  const existingUser = await UserModel.findOne({ where: { email } });
+  const existingUser = await LocalUserModel.findOne({ where: { email } });
 
   // Store user existence status in Redis with a 5-minute expiration
   if (existingUser) {

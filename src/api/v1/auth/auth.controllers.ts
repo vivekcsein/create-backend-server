@@ -2,7 +2,11 @@ import bcrypt from "bcryptjs";
 import JWT from "jsonwebtoken";
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { envJWTServices } from "../../../configs/constants/config.env";
-import UserModel from "../../../configs/models/model.users";
+import { google } from "../../../configs/auth/auth.google";
+import * as arctic from "arctic";
+import LocalUserModel from "../../../configs/models/model.LocalUsers";
+import SocialUserModel, { type ISocialUser, type SocialUserCreationAttributes } from "../../../configs/models/model.SocialUsers";
+
 import {
     AuthError,
     ValidationError,
@@ -73,7 +77,7 @@ export const userVerifyandCreateUser = async (
         // await VerifyOtp(email, otp);
 
         const hasedPassword = await bcrypt.hash(password, 10);
-        const newUser = await UserModel.create({
+        const newUser = await LocalUserModel.create({
             uid: crypto.randomUUID(),
             email: email,
             password: hasedPassword,
@@ -102,7 +106,7 @@ export const userForgetPassword = async (
             throw new ValidationError("Email is required!!!");
         }
 
-        const User = await UserModel.findOne({ where: { email } });
+        const User = await LocalUserModel.findOne({ where: { email } });
         if (!User) {
             throw new ValidationError(`User doesn't exists: ${email}`);
         }
@@ -156,7 +160,7 @@ export const resetForgetPassword = async (
             throw new ValidationError("Email &  new Password are required!!!");
         }
 
-        const User = await UserModel.findOne({ where: { email } });
+        const User = await LocalUserModel.findOne({ where: { email } });
         if (!User) {
             throw new ValidationError(`User doesn't exists: ${email}`);
         }
@@ -169,7 +173,7 @@ export const resetForgetPassword = async (
 
         //update the new password
         const hasedPassword = await bcrypt.hash(newPassword, 10);
-        await UserModel.update(
+        await LocalUserModel.update(
             {
                 password: hasedPassword
             },
@@ -199,7 +203,7 @@ export const userSignIn = async (req: FastifyRequest, reply: FastifyReply) => {
             throw new ValidationError("Email & password are required");
         }
 
-        const User = await UserModel.findOne({ where: { email: email } });
+        const User = await LocalUserModel.findOne({ where: { email: email } });
         if (!User) {
             throw new AuthError(`User doesn't exists`);
         }
@@ -245,8 +249,8 @@ export const userSignIn = async (req: FastifyRequest, reply: FastifyReply) => {
         // Only set refresh token cookie if HTTPS is used
         // const isSecure = req.protocol === "https" || req.headers["x-forwarded-proto"] === "https";
 
-        setCookie(reply, "access_token", accessToken);
-        setCookie(reply, "refresh_token", refreshToken);
+        setCookie(reply, "access_token", accessToken, { secure: true });
+        setCookie(reply, "refresh_token", refreshToken, { secure: true });
 
         // if (isSecure) {
         // }
@@ -324,7 +328,7 @@ export const verifyRefreshToken = async (req: FastifyRequest, reply: FastifyRepl
 
 // Helper to fetch user info by id
 const fetchUser = async (userId: number) => {
-    const User = await UserModel.findByPk(userId, {
+    const User = await LocalUserModel.findByPk(userId, {
         attributes: ["id", "email", "fullname", "role"]
     });
 
@@ -398,4 +402,124 @@ export const userSignOut = async (_req: FastifyRequest, reply: FastifyReply) => 
         .clearCookie("access_token", { path: "/" })
         .clearCookie("refresh_token", { path: "/" })
         .send({ message: "Logged out" });
+}
+
+export const UserRedirectToGoogleSignin = async (req: FastifyRequest, reply: FastifyReply) => {
+
+    const googleState = arctic.generateState();
+    const googleCodeVerifier = arctic.generateCodeVerifier();
+    const scopes = ["openid", "profile", "email"];
+    const googleAuthorizationURL = google.createAuthorizationURL(googleState, googleCodeVerifier, scopes);
+
+    reply
+        .status(302)
+        .header("Set-Cookie", [
+            `google_oauth_state=${googleState}; Path="/"; HttpOnly=true; SameSite="none",domain: 'accounts.google.com'`,
+            `google_oauth_verifier=${googleCodeVerifier}; Path="/"; HttpOnly=true; SameSite="none", domain: 'accounts.google.com'`
+        ])
+        .header("Access-Control-Allow-Origin", "http://localhost:3000")
+        .header("Access-Control-Allow-Credentials", "true")
+        // .redirect(googleAuthorizationURL.toString())
+        // .header("location", googleAuthorizationURL.toString())
+        .send(
+            {
+                redirectUrl: googleAuthorizationURL.toString()
+            }
+        );
+
+}
+
+export const UserCallbackFromGoogle = async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+
+        // Ensure @fastify/cookie is registered in your Fastify instance
+        // and that cookies are being sent from the client with credentials: 'include'
+
+        // Helper to parse cookies from header if req.cookies is empty or missing values
+        function getCookieValue(cookieHeader: string | undefined, key: string): string | undefined {
+            if (!cookieHeader) return undefined;
+            const cookies = cookieHeader.split(';').map(c => c.trim());
+            for (const cookie of cookies) {
+                const [k, ...v] = cookie.split('=');
+                if (k === key) return v.join('=');
+            }
+            return undefined;
+        }
+
+        const storedState = req.cookies?.google_oauth_state || getCookieValue(req.headers['cookie'] as string | undefined, 'google_oauth_state');
+        const codeVerifier = req.cookies?.google_oauth_verifier || getCookieValue(req.headers['cookie'] as string | undefined, 'google_oauth_verifier');
+        if (!storedState) {
+            return reply.status(400).send({ message: "Missing OAuth state" });
+        } else if (!codeVerifier) {
+            return reply.status(400).send({ message: "Missing OAuth code verifier" });
+        }
+
+        // 1. Get code and state from query
+        const { code, state } = req.query as { code?: string; state?: string };
+        if (!code || !state) {
+            return reply.status(400).send({ message: "Missing code or state" })
+        }
+
+        // 3. Validate state
+        if (process.env.NODE_ENV === "production" && state !== storedState) {
+            return reply.status(400).send({ message: "Invalid state" })
+        }
+
+        // 4. Exchange code for tokens
+        let tokens: arctic.OAuth2Tokens;
+        try {
+            tokens = await google.validateAuthorizationCode(code, codeVerifier);
+        } catch (err) {
+            return reply.status(401).send({ message: "Failed to exchange code for tokens" })
+        }
+
+        // 5. Get user info from Google
+        let googleUser;
+        try {
+            googleUser = arctic.decodeIdToken(tokens.idToken());
+        } catch (err) {
+            return reply.status(401).send({ message: "Failed to fetch user info from Google" })
+        }
+
+        const { sub: googleUserId, googleName, googleProfileImage, googleUserEmail } = googleUser as { sub: string, googleName: string, googleProfileImage: string, googleUserEmail: string };
+
+        // 6. Find or create user in your DB
+        let existingUser = await LocalUserModel.findOne({ where: { email: googleUserEmail } });
+        let newUser;
+        let newUserDatabaseID;
+        if (!existingUser) {
+            newUser = await SocialUserModel.create({
+                uid: crypto.randomUUID(),
+                email: googleUserEmail,
+                name: googleName,
+                provider: "google",
+                providerId: googleUserId,
+                image: googleProfileImage,
+                role: "DEFAULT",
+            });
+            newUserDatabaseID = newUser.dataValues.id;
+        }
+
+        // 7. Generate your own JWT tokens
+        const accessToken = JWT.sign(
+            { id: newUserDatabaseID },
+            envJWTServices.JWT_ACCESS_TOKEN,
+            { expiresIn: "15m" }
+        );
+        const refreshToken = JWT.sign(
+            { id: newUserDatabaseID },
+            envJWTServices.JWT_REFRESH_TOKEN,
+            { expiresIn: "7d" }
+        );
+
+        // 8. Set cookies
+        setCookie(reply, "access_token", accessToken);
+        setCookie(reply, "refresh_token", refreshToken);
+        reply.header("Access-Control-Allow-Origin", "http://localhost:3000");
+        reply.header("Access-Control-Allow-Credentials", "true");
+        // 9. Redirect to frontend or send success
+        return reply.redirect("http://localhost:3000/dashboard");
+    } catch (error) {
+        return reply.status(500).send({ message: "Internal server error" });
+    }
 }

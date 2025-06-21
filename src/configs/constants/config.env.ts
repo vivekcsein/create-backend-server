@@ -49,9 +49,23 @@ const _envCookieValue = {
   COOKIE_SECURE: process.env.NODE_ENV === "production" ? true : false,
 }
 
+const _envGoogleClient = {
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID as string,
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET as string,
+  GOOGLE_REDIRECT_URL: process.env.GOOGLE_REDIRECT_URL as string,
+}
+
+const _envGithubClient = {
+  GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID as string,
+  GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET as string,
+  GITHUB_REDIRECT_URL: process.env.GITHUB_REDIRECT_URL as string,
+}
+
 export const envConfig = Object.freeze(_envConfig);
 export const envMysqlDB = Object.freeze(_envMysqlDB);
 export const envRedisDB = Object.freeze(_envRedisDB);
 export const envMailServices = Object.freeze(_envMailServices);
 export const envJWTServices = Object.freeze(_envJWTServices);
 export const envCookieValue = Object.freeze(_envCookieValue);
+export const envGoogleClient = Object.freeze(_envGoogleClient);
+export const envGithubClient = Object.freeze(_envGithubClient);

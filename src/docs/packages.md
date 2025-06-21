@@ -47,7 +47,7 @@ Initialize the node project, create package.json using this terminal command, an
 
     bun add --dev
 
-<p>
+<>
 
 <p>
 
@@ -80,5 +80,17 @@ Initialize the node project, create package.json using this terminal command, an
 <p>
     
     bun add --dev @types/nodemailer @types/ejs @types/jsonwebtoken
+
+</p>
+
+<p>
+
+We use the "Arctic" package for Google Sign-In authentication.
+
+</p>
+
+<p>
+    
+    bun add arctic
 
 </p>

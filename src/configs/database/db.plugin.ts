@@ -5,7 +5,8 @@ import sequelize, { connect_sequelizeDB } from "./db.sequelize"; // Import your 
 import { connect_redisDB } from "./db.redis";
 
 // Import all models
-import UserModel from "../models/model.users";
+import LocalUserModel from "../models/model.LocalUsers";
+import SocialUserModel from "../models/model.SocialUsers";
 
 // Make Sequelize instance accessible to all routes and handlers
 const dbPlugin = async (fastify: FastifyInstance) => {
@@ -13,7 +14,8 @@ const dbPlugin = async (fastify: FastifyInstance) => {
   // connect_redisDB();
   fastify.decorate("sequelize", sequelize);
   // Make model accessible
-  fastify.decorate("User", UserModel);
+  fastify.decorate("LocalUsers", LocalUserModel);
+  fastify.decorate("SocialUsers", SocialUserModel);
 };
 
 export default fp(dbPlugin, {
