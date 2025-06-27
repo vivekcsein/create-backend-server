@@ -1,6 +1,7 @@
 import type { RouteOptions } from "fastify";
 import * as usersController from "./auth.controllers";
 import * as errHandler from "./auth.errorhandlers";
+import { UserCallbackFromGoogle, UserRedirectToGoogleSignin } from "../../../configs/auth/auth.google";
 
 const signUpRoute: RouteOptions = {
     method: "POST",
@@ -84,7 +85,7 @@ const signOutRoute: RouteOptions = {
 const redirectToGoogleSignin: RouteOptions = {
     method: "GET",
     url: "/google",
-    handler: usersController.UserRedirectToGoogleSignin,
+    handler: UserRedirectToGoogleSignin,
     errorHandler: errHandler.errUserSignIn,
     // schema: signInWithGoogleSchema,
 };
@@ -92,7 +93,7 @@ const redirectToGoogleSignin: RouteOptions = {
 const callbackFromGoogle: RouteOptions = {
     method: "GET",
     url: "/google/callback",
-    handler: usersController.UserCallbackFromGoogle,
+    handler: UserCallbackFromGoogle,
     errorHandler: errHandler.errUserSignIn,
     // schema: signInWithGoogleSchema,
 };

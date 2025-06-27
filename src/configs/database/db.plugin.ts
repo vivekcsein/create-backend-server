@@ -2,7 +2,7 @@
 import fp from "fastify-plugin";
 import type { FastifyInstance } from "fastify";
 import sequelize, { connect_sequelizeDB } from "./db.sequelize"; // Import your Sequelize instance
-import { connect_redisDB } from "./db.redis";
+// import { connect_redisDB } from "./db.redis";
 
 // Import all models
 import LocalUserModel from "../models/model.LocalUsers";
